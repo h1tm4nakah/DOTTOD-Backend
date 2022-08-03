@@ -1,13 +1,24 @@
-from flask_restx import Namespace, Model, fields
+from flask_restx import Namespace, fields
 
 exhibition_ns = Namespace(name="exhibition", validate=True)
 
-exhibition_base_model = exhibition_ns.model(
-    "Exhibition",
+piece_base_model = exhibition_ns.model(
+    "Piece",
     {
-        "id": fields.Integer,
-        "name": fields.String,
-        "category": fields.String,
-        "group": fields.String,
+        "slug": fields.String,
+        "input_original": fields.String,
+        "input_translated": fields.String,
+        "artifact_url": fields.String,
+        "tweeted_at": fields.String,
+    }
+)
+
+participant_base_model = exhibition_ns.model(
+    "Participant",
+    {
+        "username": fields.String,
+        "profile_url": fields.String,
+        "affiliated_party": fields.String,
+        "pieces": fields.List(fields.Nested(piece_base_model))
     }
 )

@@ -3,8 +3,10 @@ from typing import Dict
 
 
 def filter_tweet_text(input_text: str) -> str:
+    # Remove trailing and starting white spaces
+    filtered_text = input_text.strip()
     # Remove urls from the tweet
-    filtered_text = re.sub(r"http\S+", "", input_text)
+    filtered_text = re.sub(r"http\S+", "", filtered_text)
     # Remove hashtags
     filtered_text = re.sub(r"#\S+", "", filtered_text)
     # Remove new lines

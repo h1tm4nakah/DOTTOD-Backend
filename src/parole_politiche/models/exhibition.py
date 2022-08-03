@@ -30,6 +30,7 @@ class Piece(db.Model):
     tweet_reply_count = db.Column(db.Integer, default=1, nullable=False)
     tweet_like_count = db.Column(db.Integer, default=1, nullable=False)
     artifact_url = db.Column(db.String(300), nullable=True)
+    tweeted_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 

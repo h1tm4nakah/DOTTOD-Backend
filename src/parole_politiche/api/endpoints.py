@@ -3,9 +3,13 @@ from flask_restx import Resource, marshal
 from parole_politiche import db
 from parole_politiche.api.serializers import (
     exhibition_ns,
-    exhibition_base_model
+    participant_base_model
 )
 from parole_politiche.api.parsers import get_exhibition_filters_req_parser
+from parole_politiche.models.exhibition import Participant
+
+from typing import List
+
 
 @exhibition_ns.route("", endpoint="exhibition_list")
 @exhibition_ns.response(int(HTTPStatus.BAD_REQUEST), "Validation error.")
@@ -14,9 +18,8 @@ from parole_politiche.api.parsers import get_exhibition_filters_req_parser
 class ExhibitionList(Resource):
     """Handles HTTP requests to URL: /exhibition."""
 
-    @exhibition_ns.doc(security="Bearer")
     @exhibition_ns.expect(get_exhibition_filters_req_parser)
-    @exhibition_ns.marshal_with(exhibition_base_model)
+    @exhibition_ns.marshal_with(participant_base_model)
     def get(self):
-
-        return {}, HTTPStatus.OK
+        participants: List[Participant] = db.session.query(Participant).all()
+        return participants, HTTPStatus.OK

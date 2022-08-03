@@ -71,6 +71,7 @@ def get_tweets():
                     tweet_retweet_count=selected_tweet.public_metrics['retweet_count'],
                     tweet_reply_count=selected_tweet.public_metrics['reply_count'],
                     tweet_like_count=selected_tweet.public_metrics['retweet_count'],
+                    tweeted_at=selected_tweet.created_at,
                     account_username=p.username
                 )
                 db.session.add(piece)
