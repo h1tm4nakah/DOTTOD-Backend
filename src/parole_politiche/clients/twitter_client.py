@@ -14,10 +14,10 @@ class TwitterClient(object):
     client = tweepy.Client(bearer_token=bearer_token)
 
     @staticmethod
-    def get_tweets(user: Participant):
-        start_date = datetime.datetime.now() - datetime.timedelta(days=1)
+    def get_tweets(user: Participant, date: datetime.date = None):
+        start_date = date if date else datetime.datetime.now() - datetime.timedelta(days=1)
         start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = datetime.datetime.now() - datetime.timedelta(days=1)
+        end_date = date if date else datetime.datetime.now() - datetime.timedelta(days=1)
         end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=0)
         print("-------------------------------------------------------------------------")
         print(f"Fetching tweets for user {user.username} from {start_date} to {end_date}")
@@ -26,7 +26,7 @@ class TwitterClient(object):
             exclude=['retweets', 'replies'],
             start_time=start_date,
             end_time=end_date,
-            tweet_fields=["public_metrics"],
+            tweet_fields=["public_metrics", "created_at"],
             max_results=50,
         )
         print(f"-- Found {len(response.data)} tweets")

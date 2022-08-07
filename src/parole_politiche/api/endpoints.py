@@ -6,8 +6,9 @@ from parole_politiche.api.serializers import (
     participant_base_model
 )
 from parole_politiche.api.parsers import get_exhibition_filters_req_parser
-from parole_politiche.models.exhibition import Participant
-
+from parole_politiche.models.exhibition import Participant, Piece
+from sqlalchemy import desc
+from sqlalchemy.orm import contains_eager
 from typing import List
 
 
@@ -21,5 +22,11 @@ class ExhibitionList(Resource):
     @exhibition_ns.expect(get_exhibition_filters_req_parser)
     @exhibition_ns.marshal_with(participant_base_model)
     def get(self):
-        participants: List[Participant] = db.session.query(Participant).all()
+        participants: List[Participant] = (
+            db.session.query(Participant)
+            .join(Piece, Participant.pieces)
+            .options(contains_eager(Participant.pieces))
+            .order_by(desc(Piece.created_at))
+            .all()
+        )
         return participants, HTTPStatus.OK

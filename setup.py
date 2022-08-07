@@ -34,6 +34,8 @@ INSTALL_REQUIRES = [
     "gunicorn",
     "tweepy",
     "openai",
+    "dalle2",
+    "pyuploadcare",
 ]
 
 EXTRAS_REQUIRE = {
