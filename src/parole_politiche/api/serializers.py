@@ -17,12 +17,26 @@ piece_base_model = exhibition_ns.model(
     }
 )
 
-participant_base_model = exhibition_ns.model(
-    "Participant",
+participant_model = exhibition_ns.model(
+    "ParticipantBase",
     {
         "username": fields.String,
         "profile_url": fields.String,
         "affiliated_party": fields.String,
+    }
+)
+
+piece_with_participant_model = exhibition_ns.inherit(
+    "PieceWithParticipant",
+    piece_base_model,
+    {
+        "participant": fields.Nested(participant_model)
+    }
+)
+participant_base_model = exhibition_ns.inherit(
+    "Participant",
+    participant_model,
+    {
         "pieces": fields.List(fields.Nested(piece_base_model))
     }
 )

@@ -29,5 +29,5 @@ class TwitterClient(object):
             tweet_fields=["public_metrics", "created_at"],
             max_results=50,
         )
-        print(f"-- Found {len(response.data)} tweets")
+        print(f"-- Found {len(response.data) if response.data else 0} tweets")
         return response.data

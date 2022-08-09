@@ -4,7 +4,7 @@ from http import HTTPStatus
 from flask_restx import Namespace, Resource
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import contains_eager
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from parole_politiche.api.auth.auth_parsers import (
     auth_reqparser,
     admin_tweet_date_parser,
@@ -80,10 +80,16 @@ class GenerateTweetsAPIs(Resource):
         else:
             date = args_dict["date"]
 
-        print(f"Generating tweets for date {date}")
+        filters =[]
+        if "usernames" in args_dict:
+            for u in args_dict["usernames"]:
+                print(u)
+                filters.append((Participant.username == u))
+
+        print(f"Generating tweets for date {date} and users {args_dict['usernames']}")
         # Response doc: https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/tweet
         # Get all participants aka users we are monitoring, from the database
-        participants: List[Participant] = db.session.query(Participant).all()
+        participants: List[Participant] = db.session.query(Participant).filter(or_(*filters)).all()
         tweet_list: List[Dict[str,str]] = []
         # Iterate though them and fetch the tweets
         p: Participant
@@ -276,26 +282,49 @@ class GenerateImagesAPIsByID(Resource):
 
         generated_images = admin_tweet_submit_generated_parser.parse_args()
         print(generated_images)
-        if "artifact_url_1" in generated_images:
-            piece.artifact_url_1 = generated_images["artifact_url_1"]
+        if "artifact_url_1" in generated_images and generated_images["artifact_url_1"] is not None:
+            if generated_images["artifact_url_1"] != piece.artifact_url_1:
+                ucare_url_1 = Dalle2Client.uploadcare.upload(generated_images["artifact_url_1"])
+                piece.artifact_url_1 = ucare_url_1
         else:
             piece.artifact_url_1 = None
 
-        if "artifact_url_2" in generated_images:
-            piece.artifact_url_2 = generated_images["artifact_url_2"]
+        if "artifact_url_2" in generated_images and generated_images["artifact_url_2"] is not None:
+            if generated_images["artifact_url_2"] != piece.artifact_url_2:
+                ucare_url_2 = Dalle2Client.uploadcare.upload(generated_images["artifact_url_2"])
+                piece.artifact_url_2 = ucare_url_2
         else:
             piece.artifact_url_2 = None
 
-        if "artifact_url_3" in generated_images:
-            piece.artifact_url_3 = generated_images["artifact_url_3"]
+        if "artifact_url_3" in generated_images and generated_images["artifact_url_3"] is not None:
+            if generated_images["artifact_url_3"] != piece.artifact_url_3:
+                ucare_url_3 = Dalle2Client.uploadcare.upload(generated_images["artifact_url_3"])
+                piece.artifact_url_3 = ucare_url_3
         else:
             piece.artifact_url_3 = None
 
-        if "artifact_url_4" in generated_images:
-            piece.artifact_url_4 = generated_images["artifact_url_4"]
+        if "artifact_url_4" in generated_images and generated_images["artifact_url_4"] is not None:
+            if generated_images["artifact_url_4"] != piece.artifact_url_4:
+                ucare_url_4 = Dalle2Client.uploadcare.upload(generated_images["artifact_url_4"])
+                piece.artifact_url_4 = ucare_url_4
         else:
             piece.artifact_url_4 = None
 
         db.session.commit()
 
         return piece, int(HTTPStatus.OK)
+
+
+@auth_ns.route("/participants", endpoint="auth_get_particpants_filters")
+class GetPartsFilters(Resource):
+    """Handles HTTP requests to URL: /api/auth/participants."""
+
+    @auth_ns.doc(security="Bearer")
+    @auth_ns.response(int(HTTPStatus.OK), "Log out succeeded, token is no longer valid.")
+    @auth_ns.response(int(HTTPStatus.BAD_REQUEST), "Validation error.")
+    @auth_ns.response(int(HTTPStatus.UNAUTHORIZED), "Token is invalid or expired.")
+    @auth_ns.response(int(HTTPStatus.INTERNAL_SERVER_ERROR), "Internal server error.")
+    @token_required
+    def get(self):
+        participants: Participant = db.session.query(Participant).all()
+        return [{"value": p.username, "label": p.username} for p in participants], int(HTTPStatus.OK)

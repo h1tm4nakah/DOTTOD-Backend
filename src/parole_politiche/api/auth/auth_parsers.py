@@ -27,6 +27,9 @@ admin_tweet_date_parser = RequestParser(bundle_errors=True)
 admin_tweet_date_parser.add_argument(
     "date", location="args", type=lambda date: datetime.strptime(date, '%d/%m/%Y'), store_missing=False
 )
+admin_tweet_date_parser.add_argument(
+    "usernames", location="args",action='split', store_missing=False
+)
 
 admin_tweet_submit_parser = RequestParser(bundle_errors=True)
 admin_tweet_submit_parser.add_argument('tweets', type=array_type, location="json")
