@@ -44,12 +44,10 @@ class ExhibitionParticipantSingle(Resource):
     def get(self, username):
         participant: Participant = (
             db.session.query(Participant)
-            .join(Piece, Participant.pieces)
-            .options(contains_eager(Participant.pieces))
             .filter(Participant.username == username)
-            .order_by(desc(Piece.created_at))
             .first()
         )
+
         if participant is None:
             return {}, int(HTTPStatus.BAD_REQUEST)
 
