@@ -131,7 +131,7 @@ class GenerateTweetsAPIs(Resource):
     def post(self):
         tweets_dict: List[Dict[str,str]] = get_submitted_tweets()
         generated_pieces: List[Piece] = []
-
+        print(f"Accessing storing generated tweets with args: {generated_pieces}")
         for tweet in tweets_dict:
             try:
                 db.session.query(Piece).filter_by(slug=f"{tweet['username']}-{tweet['tweet_id']}").one()
@@ -148,6 +148,7 @@ class GenerateTweetsAPIs(Resource):
                             tweeted_at=datetime.datetime.strptime(tweet['tweeted_at'], '%d/%m/%Y %H:%M:%S'),
                             account_username=tweet['username']
                         )
+                    print(f"--- Storing: {piece}")
                     db.session.add(piece)
                     db.session.commit()
                     generated_pieces.append(piece)
