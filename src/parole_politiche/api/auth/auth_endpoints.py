@@ -1,5 +1,6 @@
 """API endpoint definitions for /auth namespace."""
 import datetime
+import logging
 from http import HTTPStatus
 from flask_restx import Namespace, Resource
 from sqlalchemy.orm.exc import NoResultFound
@@ -42,7 +43,8 @@ class LoginUser(Resource):
         request_data = auth_reqparser.parse_args()
         email = request_data.get("email")
         password = request_data.get("password")
-        print(f"* Attempt to login from email: {email}")
+        logging.log(logging.INFO, logging.INFO, f"* Attempt to login from email: {email}")
+
         return process_login_request(email, password)
 
 
@@ -57,6 +59,7 @@ class LogoutUser(Resource):
     @auth_ns.response(int(HTTPStatus.INTERNAL_SERVER_ERROR), "Internal server error.")
     def post(self):
         """Add token to blacklist, deauthenticating the current user."""
+        logging.log(logging.INFO, logging.INFO, f"* Atttempt to log out")
         return process_logout_request()
 
 
@@ -83,10 +86,9 @@ class GenerateTweetsAPIs(Resource):
         filters =[]
         if "usernames" in args_dict:
             for u in args_dict["usernames"]:
-                print(u)
                 filters.append((Participant.username == u))
 
-        print(f"Generating tweets for date {date} and users {args_dict['usernames']}")
+        logging.log(logging.INFO, logging.INFO, f"Generating tweets for date {date} and users {args_dict['usernames']}")
         # Response doc: https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/tweet
         # Get all participants aka users we are monitoring, from the database
         participants: List[Participant] = db.session.query(Participant).filter(or_(*filters)).all()
@@ -105,8 +107,8 @@ class GenerateTweetsAPIs(Resource):
                         if get_tweet_score(t) > get_tweet_score(selected_tweet):
                             selected_tweet = t
 
-                print(f"Selected Tweet of user @{p.username} --> [ID: {selected_tweet.id}] {filter_tweet_text(selected_tweet.text)}")
-                print(selected_tweet.created_at)
+                logging.log(logging.INFO, f"Selected Tweet of user @{p.username} --> [ID: {selected_tweet.id}] {filter_tweet_text(selected_tweet.text)}")
+                logging.log(logging.INFO, selected_tweet.created_at)
                 tweet_list.append(
                     {
                         "tweet": filter_tweet_text(selected_tweet.text),
@@ -131,11 +133,11 @@ class GenerateTweetsAPIs(Resource):
     def post(self):
         tweets_dict: List[Dict[str,str]] = get_submitted_tweets()
         generated_pieces: List[Piece] = []
-        print(f"Accessing storing generated tweets with args: {generated_pieces}")
+        logging.log(logging.INFO, f"Accessing storing generated tweets with args: {generated_pieces}")
         for tweet in tweets_dict:
             try:
                 db.session.query(Piece).filter_by(slug=f"{tweet['username']}-{tweet['tweet_id']}").one()
-                print(f"The Tweet {tweet['tweet_id']} already exist in the database")
+                logging.log(logging.ERROR, f"The Tweet {tweet['tweet_id']} already exist in the database")
             except NoResultFound:
                 try:
                     piece: Piece = Piece(
@@ -148,13 +150,13 @@ class GenerateTweetsAPIs(Resource):
                             tweeted_at=datetime.datetime.strptime(tweet['tweeted_at'], '%d/%m/%Y %H:%M:%S'),
                             account_username=tweet['username']
                         )
-                    print(f"--- Storing: {piece}")
+                    logging.log(logging.INFO, f"--- Storing: {piece}")
                     db.session.add(piece)
                     db.session.commit()
                     generated_pieces.append(piece)
-                    print(f"The Tweet {tweet['tweet_id']} was successfully added to the database")
+                    logging.log(logging.INFO, f"The Tweet {tweet['tweet_id']} was successfully added to the database")
                 except Exception as e:
-                    print(f"Something went wromg when creating tweet {tweet['tweet_id']} --> {e}")
+                    logging.log(logging.ERROR, f"Something went wromg when creating tweet {tweet['tweet_id']} --> {e}")
 
         return generated_pieces, int(HTTPStatus.OK)
 
@@ -172,6 +174,7 @@ class TranslateTweetsAPIs(Resource):
     @auth_ns.marshal_with(participant_admin_model)
     def get(self):
         tweet_filter = get_translation_filters()
+        logging.log(logging.INFO, f"Access to get tweets to trnslate with filters {tweet_filter}")
         participants: List[Participant] = (
             db.session.query(Participant)
             .join(Piece, Participant.pieces)
@@ -202,6 +205,7 @@ class TranslateTweetsPatchAPIs(Resource):
             return {}, int(HTTPStatus.BAD_REQUEST)
 
         translation_dict = admin_tweet_submit_translation_parser.parse_args()
+        logging.log(logging.INFO, f"Submitting translated tweet with args: {translation_dict}")
         if "input_translated" in translation_dict:
             piece.input_translated = translation_dict["input_translated"]
             db.session.commit()
@@ -209,9 +213,9 @@ class TranslateTweetsPatchAPIs(Resource):
             try:
                 translated_prompt: str = GPT3Client.get_translation(piece.input_original)
                 piece.input_translated = translated_prompt
-                print(f"Successfully translated:\n{piece.input_original}\nto\n{piece.input_translated}")
+                logging.log(logging.INFO, f"Successfully translated:\n{piece.input_original}\nto\n{piece.input_translated}")
             except Exception:
-                print(f"Something went wrong translating piece {piece.input_original}")
+                logging.log(logging.ERROR, f"Something went wrong translating piece {piece.input_original}")
 
         return piece, int(HTTPStatus.OK)
 
@@ -229,6 +233,7 @@ class GenerateImagesAPIs(Resource):
     @auth_ns.marshal_with(participant_admin_model)
     def get(self):
         tweet_filter = get_generation_filters()
+        logging.log(logging.INFO, f"Accessing images to be translated with filters {tweet_filter}")
         participants: List[Participant] = (
             db.session.query(Participant)
             .join(Piece, Participant.pieces)
@@ -258,7 +263,12 @@ class GenerateImagesAPIsByID(Resource):
         if piece is None:
             return {}, int(HTTPStatus.BAD_REQUEST)
 
-        generated_images = Dalle2Client.generate_image(piece)
+        logging.log(logging.INFO, f"Accessing DALL-E endpoint to generate images for piece {piece}")
+
+        try:
+            generated_images = Dalle2Client.generate_image(piece)
+        except Exception as e:
+            logging.log(logging.ERROR, f"Something went wrong when generating images {e}")
 
         piece.artifact_url_1 = generated_images[0]
         piece.artifact_url_2 = generated_images[1]
@@ -282,7 +292,8 @@ class GenerateImagesAPIsByID(Resource):
             return {}, int(HTTPStatus.BAD_REQUEST)
 
         generated_images = admin_tweet_submit_generated_parser.parse_args()
-        print(generated_images)
+        logging.log(logging.INFO, f"Accessing endpoint to store images from URL with args: {generated_images}")
+
         if "artifact_url_1" in generated_images and generated_images["artifact_url_1"] is not None:
             if generated_images["artifact_url_1"] != piece.artifact_url_1:
                 ucare_url_1 = Dalle2Client.uploadcare.upload(generated_images["artifact_url_1"])
@@ -327,5 +338,6 @@ class GetPartsFilters(Resource):
     @auth_ns.response(int(HTTPStatus.INTERNAL_SERVER_ERROR), "Internal server error.")
     @token_required
     def get(self):
+        logging.log(logging.INFO, f"Accessing get participants filters")
         participants: Participant = db.session.query(Participant).all()
         return [{"value": p.username, "label": p.username} for p in participants], int(HTTPStatus.OK)
