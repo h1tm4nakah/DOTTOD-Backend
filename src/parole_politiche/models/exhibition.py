@@ -23,9 +23,10 @@ class Piece(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     slug = db.Column(db.String(100), nullable=False, unique=True)
-    input_original = db.Column(db.String(300), nullable=False)
-    input_translated = db.Column(db.String(300), nullable=True)
+    input_original = db.Column(db.String(500), nullable=False)
+    input_translated = db.Column(db.String(500), nullable=True)
     tweet_id = db.Column(db.String(100), nullable=False)
+    tweet_response_id = db.Column(db.String(100), nullable=True)
     tweet_retweet_count = db.Column(db.Integer, default=1, nullable=False)
     tweet_reply_count = db.Column(db.Integer, default=1, nullable=False)
     tweet_like_count = db.Column(db.Integer, default=1, nullable=False)

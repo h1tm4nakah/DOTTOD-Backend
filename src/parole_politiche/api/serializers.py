@@ -14,6 +14,7 @@ piece_base_model = exhibition_ns.model(
         "artifact_url_4": fields.String,
         "tweeted_at": fields.String,
         "tweet_id": fields.String,
+        "tweet_response_id": fields.String,
     }
 )
 

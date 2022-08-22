@@ -128,6 +128,17 @@ def add_user(email, password):
     return 0
 
 
+@app.cli.command("reply_to_tweet", short_help="Reply to tweet")
+def reply_to_tweet():
+    piece: Piece = db.session.query(Piece).first()
+    print(piece.__dict__)
+    if piece.artifact_url_1 is None:
+        return
+
+    TwitterClient.reply_to_tweet(piece)
+
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=1919, debug=True)
 

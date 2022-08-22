@@ -5,7 +5,7 @@ from http import HTTPStatus
 from flask_restx import Namespace, Resource
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import contains_eager
-from sqlalchemy import desc, or_
+from sqlalchemy import desc, or_, asc
 from parole_politiche.api.auth.auth_parsers import (
     auth_reqparser,
     admin_tweet_date_parser,
@@ -341,3 +341,75 @@ class GetPartsFilters(Resource):
         logging.log(logging.INFO, f"Accessing get participants filters")
         participants: Participant = db.session.query(Participant).all()
         return [{"value": p.username, "label": p.username} for p in participants], int(HTTPStatus.OK)
+
+
+@auth_ns.route("/dashboard/pieces", endpoint="auth_get_all_pieces")
+class GetAllPiecesDashboard(Resource):
+    """Handles HTTP requests to URL: /api/auth/dashboard/pieces."""
+
+    @auth_ns.doc(security="Bearer")
+    @auth_ns.response(int(HTTPStatus.OK), "Log out succeeded, token is no longer valid.")
+    @auth_ns.response(int(HTTPStatus.BAD_REQUEST), "Validation error.")
+    @auth_ns.response(int(HTTPStatus.UNAUTHORIZED), "Token is invalid or expired.")
+    @auth_ns.response(int(HTTPStatus.INTERNAL_SERVER_ERROR), "Internal server error.")
+    @token_required
+    @auth_ns.marshal_with(participant_admin_model)
+    def get(self):
+        logging.log(logging.INFO, f"Accessing get participants pieces")
+        participants: List[Participant] = (
+            db.session.query(Participant)
+            .join(Piece, Participant.pieces)
+            .order_by(asc(Participant.username))
+            .options(contains_eager(Participant.pieces))
+            .order_by(desc(Piece.created_at))
+            .all()
+        )
+        return participants, HTTPStatus.OK
+
+
+@auth_ns.route("/dashboard/pieces/<string:tweet_id>", endpoint="auth_get_pieces_by_id")
+class PiecesDashboardByID(Resource):
+    """Handles HTTP requests to URL: /api/auth/dashboard/pieces/:id."""
+
+    @auth_ns.doc(security="Bearer")
+    @auth_ns.response(int(HTTPStatus.OK), "Log out succeeded, token is no longer valid.")
+    @auth_ns.response(int(HTTPStatus.BAD_REQUEST), "Validation error.")
+    @auth_ns.response(int(HTTPStatus.UNAUTHORIZED), "Token is invalid or expired.")
+    @auth_ns.response(int(HTTPStatus.INTERNAL_SERVER_ERROR), "Internal server error.")
+    @token_required
+    @auth_ns.marshal_with(participant_admin_model)
+    def delete(self, tweet_id):
+        logging.log(logging.INFO, f"Deleting piece with id {tweet_id}")
+        piece: Piece = db.session.query(Piece).filter_by(tweet_id=tweet_id).first()
+        if piece is None:
+            return {}, int(HTTPStatus.BAD_REQUEST)
+
+        db.session.delete(piece)
+        db.session.commit()
+
+        participants: List[Participant] = (
+            db.session.query(Participant)
+            .join(Piece, Participant.pieces)
+            .order_by(asc(Participant.username))
+            .options(contains_eager(Participant.pieces))
+            .order_by(desc(Piece.created_at))
+            .all()
+        )
+        return participants, HTTPStatus.OK
+
+    @auth_ns.doc(security="Bearer")
+    @auth_ns.response(int(HTTPStatus.OK), "Log out succeeded, token is no longer valid.")
+    @auth_ns.response(int(HTTPStatus.BAD_REQUEST), "Validation error.")
+    @auth_ns.response(int(HTTPStatus.UNAUTHORIZED), "Token is invalid or expired.")
+    @auth_ns.response(int(HTTPStatus.INTERNAL_SERVER_ERROR), "Internal server error.")
+    @token_required
+    @auth_ns.marshal_with(piece_admin_model)
+    def post(self, tweet_id):
+        logging.log(logging.INFO, f"Generating response tweet")
+        piece: Piece = db.session.query(Piece).filter_by(tweet_id=tweet_id).first()
+        if piece is None:
+            return {}, int(HTTPStatus.BAD_REQUEST)
+
+        TwitterClient.reply_to_tweet(piece)
+
+        return piece, HTTPStatus.OK

@@ -29,6 +29,7 @@ piece_admin_model = auth_ns.model(
         "artifact_url_4": fields.String,
         "tweeted_at": fields.String,
         "tweet_id": fields.String,
+        "tweet_response_id": fields.String,
         "tweet_retweet_count": fields.String,
         "tweet_reply_count": fields.String,
         "tweet_like_count": fields.String,
