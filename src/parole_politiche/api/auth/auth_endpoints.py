@@ -104,7 +104,7 @@ class GenerateTweetsAPIs(Resource):
                     if selected_tweet is None:
                         selected_tweet = t
                     else:
-                        if get_tweet_score(t) > get_tweet_score(selected_tweet):
+                        if get_tweet_score(t) > get_tweet_score(selected_tweet) and len(t.text) > 30:
                             selected_tweet = t
 
                 logging.log(logging.INFO, f"Selected Tweet of user @{p.username} --> [ID: {selected_tweet.id}] {filter_tweet_text(selected_tweet.text)}")
@@ -118,6 +118,20 @@ class GenerateTweetsAPIs(Resource):
                         "retweet_count": selected_tweet.public_metrics['retweet_count'],
                         "reply_count": selected_tweet.public_metrics['reply_count'],
                         "like_count": selected_tweet.public_metrics['like_count']
+                    }
+                )
+
+            else:
+                # Append placeholder tweet
+                tweet_list.append(
+                    {
+                        "tweet": f"In data {date.strftime('%d-%m-%Y')}, @{p.username} non ha effettuato nessun tweet.",
+                        "tweeted_at": date,
+                        "username": p.username,
+                        "tweet_id": "#################",
+                        "retweet_count": 0,
+                        "reply_count": 0,
+                        "like_count": 0
                     }
                 )
 
